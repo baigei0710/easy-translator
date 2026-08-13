@@ -1,5 +1,5 @@
 # Easy translator
-##An AI powered translation app
+## An AI powered translation app
 
 ---
 
