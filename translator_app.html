@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Minimal Local AI Translator</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #000103;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-hover: #0284c7;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 440px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* 顶部配置栏 */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+
+    .title {
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--primary);
+    }
+
+    .model-selector {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .model-selector select {
+      background: #0f172a;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      outline: none;
+      max-width: 180px;
+    }
+
+    .refresh-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 2px 4px;
+    }
+
+    .refresh-btn:hover {
+      color: var(--primary);
+    }
+
+    /* 文本输入输出框 */
+    .text-area-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+      resize: none;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus {
+      border-color: var(--primary);
+    }
+
+    .source-input {
+      height: 90px;
+    }
+
+    .target-output {
+      height: 100px;
+      background: #090d16;
+    }
+
+    /* 极简按钮栏 */
+    .action-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .left-actions, .right-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    button {
+      background: #334155;
+      color: var(--text);
+      border: none;
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #475569;
+    }
+
+    .btn-translate {
+      background: var(--primary);
+      color: #0f172a;
+      font-weight: 600;
+    }
+
+    .btn-translate:hover {
+      background: var(--primary-hover);
+      color: #fff;
+    }
+
+    .icon-btn {
+      padding: 4px 8px;
+      background: transparent;
+      color: var(--text-muted);
+    }
+
+    .icon-btn:hover {
+      color: var(--text);
+      background: #334155;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- 1. 顶部模型选择栏 (可动态加载 Ollama 模型) -->
+    <div class="top-bar">
+      <div class="title">
+        <span>⚡ Local Translator</span>
+      </div>
+      <div class="model-selector">
+        <select id="modelSelect">
+          <option value="">正在检测本地模型...</option>
+        </select>
+        <button class="refresh-btn" id="refreshModelsBtn" title="刷新模型列表">🔄</button>
+      </div>
+    </div>
+
+    <!-- 2. 极简翻译窗口 -->
+    <div class="text-area-group">
+      <!-- 原文输入框 -->
+      <textarea id="srcText" class="source-input" placeholder="输入或粘贴文本 (Enter 翻译)..."></textarea>
+      
+      <!-- 中间辅助按钮栏 -->
+      <div class="action-bar">
+        <div class="left-actions">
+          <button class="icon-btn" id="clearBtn" title="清空文本">🗑️ 清空</button>
+          <button class="icon-btn" id="pasteBtn" title="粘贴">📋 粘贴</button>
+        </div>
+        <div class="right-actions">
+          <button class="btn-translate" id="translateBtn">翻译</button>
+        </div>
+      </div>
+
+      <!-- 译文显示框 -->
+      <textarea id="tgtText" class="target-output" readonly placeholder="译文结果..."></textarea>
+      
+      <!-- 复制按钮 -->
+      <div class="action-bar" style="justify-content: flex-end;">
+        <button class="icon-btn" id="copyBtn" title="复制译文">📋 复制译文</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const OLLAMA_HOST = 'http://localhost:11434';
+
+    const modelSelect = document.getElementById('modelSelect');
+    const refreshModelsBtn = document.getElementById('refreshModelsBtn');
+    const srcText = document.getElementById('srcText');
+    const tgtText = document.getElementById('tgtText');
+    const translateBtn = document.getElementById('translateBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const pasteBtn = document.getElementById('pasteBtn');
+    const copyBtn = document.getElementById('copyBtn');
+
+    // 1. 动态读取本地 Ollama 已下载的模型列表
+    async function loadOllamaModels() {
+      modelSelect.innerHTML = '<option value="">正在检测中...</option>';
+      try {
+        const response = await fetch(`${OLLAMA_HOST}/api/tags`);
+        if (!response.ok) throw new Error('无法连接 Ollama 服务');
+        
+        const data = await response.json();
+        modelSelect.innerHTML = '';
+
+        if (data.models && data.models.length > 0) {
+          data.models.forEach(model => {
+            const option = document.createElement('option');
+            option.value = model.name;
+            option.textContent = model.name;
+            modelSelect.appendChild(option);
+          });
+        } else {
+          modelSelect.innerHTML = '<option value="">无可用模型 (请先 ollama pull)</option>';
+        }
+      } catch (err) {
+        modelSelect.innerHTML = '<option value="">未检测到 Ollama (11434端口)</option>';
+        console.error('Ollama 模型列表获取失败:', err);
+      }
+    }
+
+    // 2. 调用 Ollama API 进行流式翻译
+    async function startTranslation() {
+      const selectedModel = modelSelect.value;
+      const text = srcText.value.trim();
+
+      if (!text) return;
+      if (!selectedModel) {
+        tgtText.value = '请先选择有效的 Ollama 模型或启动 Ollama 服务。';
+        return;
+      }
+
+      tgtText.value = '正在翻译中...';
+
+      try {
+        const response = await fetch(`${OLLAMA_HOST}/api/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: selectedModel,
+            prompt: `You are a translator. Directly translate the following text to Chinese without adding any extra explanation or greeting:
+
+${text}`,
+            stream: true
+          })
+        });
+
+        if (!response.ok) throw new Error('Ollama 服务响应异常');
+
+        // 读取流式响应 (Stream)
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        tgtText.value = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('');
+          for (const line of lines) {
+            if (line.trim()) {
+              try {
+                const parsed = JSON.parse(line);
+                if (parsed.response) {
+                  tgtText.value += parsed.response;
+                }
+              } catch (e) {
+                // 忽略解析非完整 JSON 的情况
+              }
+            }
+          }
+        }
+      } catch (err) {
+        tgtText.value = '翻译失败：请确认 Ollama 正在后台运行 (http://localhost:11434)。';
+        console.error('翻译出错:', err);
+      }
+    }
+
+    // 事件绑定
+    window.addEventListener('DOMContentLoaded', loadOllamaModels);
+    refreshModelsBtn.addEventListener('click', loadOllamaModels);
+    translateBtn.addEventListener('click', startTranslation);
+
+    clearBtn.addEventListener('click', () => {
+      srcText.value = '';
+      tgtText.value = '';
+    });
+
+    pasteBtn.addEventListener('click', async () => {
+      const text = await navigator.clipboard.readText();
+      srcText.value = text;
+    });
+
+    copyBtn.addEventListener('click', () => {
+      if (tgtText.value) {
+        navigator.clipboard.writeText(tgtText.value);
+      }
+    });
+
+    // 回车直接翻译 (Shift+Enter 换行)
+    srcText.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        startTranslation();
+      }
+    });
+  </script>
+</body>
+</html>
