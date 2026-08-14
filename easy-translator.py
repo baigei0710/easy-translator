@@ -65,60 +65,22 @@ class HotkeyTranslatorApp:
         self.trans_window.bind("<Escape>", lambda e: self.hide_trans_window())
 
     def setup_ui(self):
+        """初始化悬浮窗界面：只保留单一的翻译结果文本框"""
         frame = tk.Frame(
             self.trans_window, 
             bg="#0f172a", 
             highlightbackground="#38bdf8", 
             highlightthickness=1, 
-            padx=12, 
+            padx=10, 
             pady=10
         )
         frame.pack(fill="both", expand=True)
 
-        # 1. 顶部标题栏
-        top_bar = tk.Frame(frame, bg="#0f172a")
-        top_bar.pack(fill="x", pady=(0, 6))
-
-        lbl = tk.Label(
-            top_bar, 
-            text="划词自动速译 (选中即译 / Esc关闭)", 
-            fg="#38bdf8", 
-            bg="#0f172a", 
-            font=("Arial", 10, "bold")
-        )
-        lbl.pack(side="left")
-
-        close_btn = tk.Button(
-            top_bar, 
-            text="✕", 
-            command=self.hide_trans_window, 
-            fg="#0f172a", 
-            highlightbackground="#e2e8f0", 
-            bd=0, 
-            font=("Arial", 9, "bold")
-        )
-        close_btn.pack(side="right")
-
-        # 2. 原文预览框
-        self.src_preview = tk.Label(
-            frame, 
-            text="鼠标选中页面文字后释放即可直接翻译...", 
-            fg="#94a3b8", 
-            bg="#1e293b", 
-            font=("Arial", 10), 
-            anchor="w", 
-            justify="left", 
-            padx=6, 
-            pady=4, 
-            wraplength=320
-        )
-        self.src_preview.pack(fill="x", pady=(0, 6))
-
-        # 3. 翻译结果展示框
+        # 核心改变：去除顶栏与原文 Label，仅保留翻译结果展示框
         self.result_text = tk.Text(
             frame, 
-            width=36, 
-            height=7, 
+            width=32, 
+            height=6, 
             bg="#090d16", 
             fg="#38bdf8", 
             bd=0, 
@@ -186,7 +148,7 @@ class HotkeyTranslatorApp:
                 is_double_click = (now - self.last_click_time) < 0.35
                 self.last_click_time = now
 
-                # 拖拽超过 8 像素，或属于快速双击选词时，直接触发划词翻译
+                # 拖拽超过 8 像素，或属于快速双击选词时，触发划词翻译
                 if distance > 8 or is_double_click:
                     self.root.after(100, self.get_selected_and_translate)
 
@@ -217,7 +179,7 @@ class HotkeyTranslatorApp:
             except Exception:
                 pass
 
-        # 4. 【核心修复】：轮询等待目标软件响应 Cmd+C，最多等待 0.25 秒
+        # 4. 轮询等待目标软件响应 Cmd+C，最多等待 0.25 秒
         selected_text = ""
         for _ in range(5):
             time.sleep(0.05)
@@ -232,15 +194,11 @@ class HotkeyTranslatorApp:
 
         # 6. 未抓取到新文本（说明 Cmd+C 失败或未选中文字）时拦截退出
         if not selected_text:
-            print("[DEBUG] 未抓取到新选中文本（Cmd+C 响应超时或未选中文字）")
             return
 
-        preview = selected_text if len(selected_text) <= 50 else selected_text[:47] + "..."
-        self.src_preview.config(text=preview)
-
-        # 调整悬浮窗位置并显示
+        # 调整悬浮窗位置并显示 (修改为更精致紧凑的 320x140 尺寸)
         x, y = self.root.winfo_pointerxy()
-        self.trans_window.geometry(f"360x220+{x + 10}+{y + 10}")
+        self.trans_window.geometry(f"320x140+{x + 10}+{y + 10}")
         self.trans_window.deiconify()
         self.trans_window.lift()
 
@@ -264,7 +222,6 @@ class HotkeyTranslatorApp:
         """专用 UI 更新函数：运行在主线程中，用于安全地向文本框写入内容"""
         self.result_text.delete("1.0", tk.END)
         self.result_text.insert(tk.END, translated_text)
-        print(f"[DEBUG] 翻译窗口已刷新，当前结果: '{translated_text}'")
 
     def api_translate(self, text):
         is_zh = any('\u4e00' <= c <= '\u9fff' for c in text)
