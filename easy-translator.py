@@ -1,6 +1,7 @@
 """
 Easy Translator - 主程序与界面模块 (UI)
 --------------------------------------
+浅色系极简设计 (Light Modern Theme with Rounded UI)
 包含：
 1. 划词速译悬浮窗 (PopoverWindow)
 2. 设置与日常翻译主窗口 (MainWindow)
@@ -26,31 +27,31 @@ from translator_core import (
 
 
 class PopoverWindow:
-    """半透明圆角划词翻译悬浮卡片"""
+    """浅色系半透明圆角划词翻译悬浮卡片"""
     def __init__(self, root):
         self.root = root
         self.window = tk.Toplevel(self.root)
         self.window.withdraw()
         self.window.overrideredirect(True)
         self.window.attributes('-topmost', True)
-        self.window.attributes('-alpha', 0.90)
+        self.window.attributes('-alpha', 0.95)
 
-        # 区分平台背景透明色
+        # 平台透明背景支持
         if sys.platform == 'darwin':
             try:
                 self.window.config(bg='systemTransparent')
             except Exception:
-                self.window.config(bg='#0f172a')
+                self.window.config(bg='#f8fafc')
         else:
-            self.window.config(bg='#0f172a')
+            self.window.config(bg='#f8fafc')
 
         self.setup_ui()
         self.window.bind("<Escape>", lambda e: self.hide())
 
     def setup_ui(self):
-        bg_color = 'systemTransparent' if sys.platform == 'darwin' else '#0f172a'
+        bg_color = 'systemTransparent' if sys.platform == 'darwin' else '#f8fafc'
 
-        # Canvas 容器负责绘制圆角与边框
+        # Canvas 容器负责绘制圆角卡片与柔和边框
         self.canvas = tk.Canvas(
             self.window, 
             bg=bg_color, 
@@ -60,22 +61,23 @@ class PopoverWindow:
         self.canvas.pack(fill="both", expand=True)
         self.canvas.bind("<Configure>", self._redraw_card)
 
-        # 结果文本框
+        # 结果展示文本框（浅色纯白底 + 典雅深灰字）
         self.result_text = tk.Text(
             self.canvas, 
-            bg="#090d16", 
-            fg="#f8fafc",
-            insertbackground="#ffffff",
+            bg="#ffffff", 
+            fg="#0f172a",
+            insertbackground="#2563eb",
             bd=0, 
             font=("Arial", 11), 
             wrap="word",
             highlightthickness=0
         )
         self.text_window_id = self.canvas.create_window(
-            10, 10, anchor="nw", window=self.result_text
+            12, 12, anchor="nw", window=self.result_text
         )
 
     def _create_rounded_polygon(self, x1, y1, x2, y2, radius=12, **kwargs):
+        """绘制平滑圆角多边形"""
         points = [
             x1 + radius, y1, x1 + radius, y1, x2 - radius, y1, x2 - radius, y1, x2, y1,
             x2, y1 + radius, x2, y1 + radius, x2, y2 - radius, x2, y2 - radius, x2, y2,
@@ -87,11 +89,11 @@ class PopoverWindow:
     def _redraw_card(self, event):
         self.canvas.delete("card_shape")
         w, h = event.width, event.height
-        # 外层白色圆角边框
-        self._create_rounded_polygon(0, 0, w, h, radius=14, fill="#ffffff", tags="card_shape")
-        # 内层暗色背景
-        self._create_rounded_polygon(1.5, 1.5, w - 1.5, h - 1.5, radius=12.5, fill="#090d16", tags="card_shape")
-        self.canvas.itemconfig(self.text_window_id, width=max(w - 20, 10), height=max(h - 20, 10))
+        # 外层细腻浅灰阴影边框
+        self._create_rounded_polygon(0, 0, w, h, radius=14, fill="#cbd5e1", tags="card_shape")
+        # 内层纯白圆角卡片
+        self._create_rounded_polygon(1.5, 1.5, w - 1.5, h - 1.5, radius=12.5, fill="#ffffff", tags="card_shape")
+        self.canvas.itemconfig(self.text_window_id, width=max(w - 24, 10), height=max(h - 24, 10))
 
     def show(self, x, y, text):
         self.result_text.delete("1.0", tk.END)
@@ -102,7 +104,7 @@ class PopoverWindow:
         self.window.deiconify()
         self.window.lift()
 
-        # 异步翻译
+        # 异步网络请求
         def _do_trans():
             res = api_translate(text)
             self.root.after(0, lambda: self._update_result(res))
@@ -121,40 +123,40 @@ class PopoverWindow:
 
 
 class MainWindow:
-    """主窗口：包含日常翻译与偏好设置两大功能页"""
+    """浅色系主窗口：包含日常翻译与偏好设置两大功能页"""
     def __init__(self, root):
         self.root = root
         self.window = tk.Toplevel(self.root)
         self.window.withdraw()
         self.window.title("Easy Translator")
-        self.window.geometry("620x520")
-        self.window.minsize(520, 420)
-        self.window.configure(bg="#0f172a")
+        self.window.geometry("620x540")
+        self.window.minsize(520, 440)
+        self.window.configure(bg="#f8fafc")
 
-        # 窗口关闭事件拦截
+        # 拦截关闭事件
         self.window.protocol("WM_DELETE_WINDOW", self.hide)
         self.window.bind("<Escape>", lambda e: self.hide())
 
-        self.current_tab = "trans" # 'trans' 或 'settings'
+        self.current_tab = "trans"
         self.setup_ui()
 
     def setup_ui(self):
-        # 1. 顶部导航栏 (Tab 切换区)
-        nav_bar = tk.Frame(self.window, bg="#0f172a", padx=16, pady=12)
+        # 1. 顶部导航栏
+        nav_bar = tk.Frame(self.window, bg="#ffffff", padx=20, pady=12, highlightbackground="#e2e8f0", highlightthickness=1)
         nav_bar.pack(fill="x")
 
         # 品牌图标与标题
         app_title = tk.Label(
             nav_bar, 
             text="Easy Translator", 
-            fg="#38bdf8", 
-            bg="#0f172a", 
+            fg="#0f172a", 
+            bg="#ffffff", 
             font=("Arial", 14, "bold")
         )
         app_title.pack(side="left")
 
-        # 标签页按钮容器
-        btn_box = tk.Frame(nav_bar, bg="#1e293b", padx=2, pady=2)
+        # 标签页按钮容器（圆角分段选择卡外观）
+        btn_box = tk.Frame(nav_bar, bg="#f1f5f9", padx=3, pady=3)
         btn_box.pack(side="right")
 
         self.tab_trans_btn = tk.Button(
@@ -162,7 +164,7 @@ class MainWindow:
             text="🌐 文本翻译", 
             font=("Arial", 10, "bold"),
             bd=0, 
-            padx=12, 
+            padx=14, 
             pady=4,
             command=lambda: self.switch_tab("trans")
         )
@@ -173,23 +175,19 @@ class MainWindow:
             text="⚙️ 偏好设置", 
             font=("Arial", 10, "bold"),
             bd=0, 
-            padx=12, 
+            padx=14, 
             pady=4,
             command=lambda: self.switch_tab("settings")
         )
         self.tab_settings_btn.pack(side="left")
 
-        # 分割线
-        sep = tk.Frame(self.window, bg="#1e293b", height=1)
-        sep.pack(fill="x")
-
         # 2. 内容主容器
-        self.content_container = tk.Frame(self.window, bg="#0f172a", padx=16, pady=12)
+        self.content_container = tk.Frame(self.window, bg="#f8fafc", padx=20, pady=16)
         self.content_container.pack(fill="both", expand=True)
 
-        # 创建两个独立的页面 Frame
-        self.trans_page = tk.Frame(self.content_container, bg="#0f172a")
-        self.settings_page = tk.Frame(self.content_container, bg="#0f172a")
+        # 两个独立的页面 Frame
+        self.trans_page = tk.Frame(self.content_container, bg="#f8fafc")
+        self.settings_page = tk.Frame(self.content_container, bg="#f8fafc")
 
         self.build_trans_page()
         self.build_settings_page()
@@ -202,22 +200,21 @@ class MainWindow:
         if tab_name == "trans":
             self.settings_page.pack_forget()
             self.trans_page.pack(fill="both", expand=True)
-            self.tab_trans_btn.config(bg="#38bdf8", fg="#0f172a", highlightbackground="#38bdf8")
-            self.tab_settings_btn.config(bg="#1e293b", fg="#94a3b8", highlightbackground="#1e293b")
+            self.tab_trans_btn.config(bg="#ffffff", fg="#2563eb", highlightbackground="#cbd5e1")
+            self.tab_settings_btn.config(bg="#f1f5f9", fg="#64748b", highlightbackground="#f1f5f9")
         else:
             self.trans_page.pack_forget()
             self.settings_page.pack(fill="both", expand=True)
-            self.tab_settings_btn.config(bg="#38bdf8", fg="#0f172a", highlightbackground="#38bdf8")
-            self.tab_trans_btn.config(bg="#1e293b", fg="#94a3b8", highlightbackground="#1e293b")
+            self.tab_settings_btn.config(bg="#ffffff", fg="#2563eb", highlightbackground="#cbd5e1")
+            self.tab_trans_btn.config(bg="#f1f5f9", fg="#64748b", highlightbackground="#f1f5f9")
 
-    # ---------------- 日常翻译页面 ----------------
+    # ---------------- 文本翻译页面 ----------------
     def build_trans_page(self):
-        # A. 语言选择工具栏
-        lang_bar = tk.Frame(self.trans_page, bg="#0f172a")
-        lang_bar.pack(fill="x", pady=(0, 8))
+        # A. 语言选择栏
+        lang_bar = tk.Frame(self.trans_page, bg="#f8fafc")
+        lang_bar.pack(fill="x", pady=(0, 10))
 
-        # 源语言
-        tk.Label(lang_bar, text="源语言:", fg="#94a3b8", bg="#0f172a", font=("Arial", 10)).pack(side="left", padx=(0, 4))
+        tk.Label(lang_bar, text="源语言:", fg="#64748b", bg="#f8fafc", font=("Arial", 10)).pack(side="left", padx=(0, 4))
         self.src_lang_cb = ttk.Combobox(
             lang_bar, 
             values=list(LANGUAGES.keys()), 
@@ -233,15 +230,17 @@ class MainWindow:
             lang_bar, 
             text=" ⇄ ", 
             command=self.swap_languages, 
-            bg="#1e293b", 
-            fg="#38bdf8", 
+            bg="#ffffff", 
+            fg="#2563eb", 
+            highlightbackground="#e2e8f0",
             bd=0, 
-            font=("Arial", 10, "bold")
+            font=("Arial", 10, "bold"),
+            padx=4,
+            pady=2
         )
-        swap_btn.pack(side="left", padx=8)
+        swap_btn.pack(side="left", padx=10)
 
-        # 目标语言
-        tk.Label(lang_bar, text="目标语言:", fg="#94a3b8", bg="#0f172a", font=("Arial", 10)).pack(side="left", padx=(0, 4))
+        tk.Label(lang_bar, text="目标语言:", fg="#64748b", bg="#f8fafc", font=("Arial", 10)).pack(side="left", padx=(0, 4))
         self.tgt_lang_cb = ttk.Combobox(
             lang_bar, 
             values=list(TARGET_LANGUAGES.keys()), 
@@ -252,28 +251,31 @@ class MainWindow:
         self.tgt_lang_cb.set("中文 (简体)")
         self.tgt_lang_cb.pack(side="left")
 
-        # 翻译状态标签
-        self.status_lbl = tk.Label(lang_bar, text="就绪", fg="#64748b", bg="#0f172a", font=("Arial", 9))
+        # 状态指示标签
+        self.status_lbl = tk.Label(lang_bar, text="就绪", fg="#94a3b8", bg="#f8fafc", font=("Arial", 9))
         self.status_lbl.pack(side="right")
 
-        # B. 原文输入框
-        src_frame = tk.LabelFrame(
+        # B. 原文输入卡片
+        src_card = tk.LabelFrame(
             self.trans_page, 
-            text=" 输入原文 (支持快捷键 Cmd+Enter 快速翻译) ", 
-            fg="#94a3b8", 
-            bg="#0f172a", 
-            font=("Arial", 9),
-            padx=6, 
-            pady=4
+            text=" 原文输入 (Cmd+Enter 快速翻译) ", 
+            fg="#475569", 
+            bg="#ffffff", 
+            highlightbackground="#e2e8f0",
+            highlightthickness=1,
+            bd=0,
+            font=("Arial", 9, "bold"),
+            padx=8, 
+            pady=6
         )
-        src_frame.pack(fill="both", expand=True, pady=(0, 8))
+        src_card.pack(fill="both", expand=True, pady=(0, 10))
 
         self.src_text = tk.Text(
-            src_frame, 
-            height=6, 
-            bg="#1e293b", 
-            fg="#f8fafc", 
-            insertbackground="#ffffff", 
+            src_card, 
+            height=5, 
+            bg="#ffffff", 
+            fg="#0f172a", 
+            insertbackground="#2563eb", 
             bd=0, 
             font=("Arial", 11), 
             wrap="word"
@@ -282,20 +284,21 @@ class MainWindow:
         self.src_text.bind("<Command-Return>", lambda e: self.do_manual_translate())
         self.src_text.bind("<Control-Return>", lambda e: self.do_manual_translate())
 
-        # C. 操作按钮区
-        btn_bar = tk.Frame(self.trans_page, bg="#0f172a")
-        btn_bar.pack(fill="x", pady=(0, 8))
+        # C. 操作按钮栏
+        btn_bar = tk.Frame(self.trans_page, bg="#f8fafc")
+        btn_bar.pack(fill="x", pady=(0, 10))
 
         trans_btn = tk.Button(
             btn_bar, 
             text="⚡ 立即翻译", 
             command=self.do_manual_translate, 
-            bg="#38bdf8", 
-            fg="#0f172a", 
+            bg="#2563eb", 
+            fg="#ffffff", 
+            highlightbackground="#2563eb",
             bd=0, 
             font=("Arial", 10, "bold"), 
-            padx=14, 
-            pady=4
+            padx=16, 
+            pady=5
         )
         trans_btn.pack(side="left")
 
@@ -303,12 +306,13 @@ class MainWindow:
             btn_bar, 
             text="📋 复制译文", 
             command=self.copy_result, 
-            bg="#1e293b", 
-            fg="#e2e8f0", 
+            bg="#ffffff", 
+            fg="#334155", 
+            highlightbackground="#e2e8f0",
             bd=0, 
             font=("Arial", 9), 
-            padx=10, 
-            pady=4
+            padx=12, 
+            pady=5
         )
         copy_btn.pack(side="left", padx=8)
 
@@ -316,33 +320,37 @@ class MainWindow:
             btn_bar, 
             text="🗑️ 清空", 
             command=self.clear_all, 
-            bg="#1e293b", 
-            fg="#e2e8f0", 
+            bg="#ffffff", 
+            fg="#64748b", 
+            highlightbackground="#e2e8f0",
             bd=0, 
             font=("Arial", 9), 
-            padx=10, 
-            pady=4
+            padx=12, 
+            pady=5
         )
         clear_btn.pack(side="left")
 
-        # D. 译文输出框
-        res_frame = tk.LabelFrame(
+        # D. 译文输出卡片
+        res_card = tk.LabelFrame(
             self.trans_page, 
             text=" 翻译结果 ", 
-            fg="#94a3b8", 
-            bg="#0f172a", 
-            font=("Arial", 9),
-            padx=6, 
-            pady=4
+            fg="#475569", 
+            bg="#ffffff", 
+            highlightbackground="#e2e8f0",
+            highlightthickness=1,
+            bd=0,
+            font=("Arial", 9, "bold"),
+            padx=8, 
+            pady=6
         )
-        res_frame.pack(fill="both", expand=True)
+        res_card.pack(fill="both", expand=True)
 
         self.res_text = tk.Text(
-            res_frame, 
-            height=6, 
-            bg="#090d16", 
-            fg="#38bdf8", 
-            insertbackground="#ffffff", 
+            res_card, 
+            height=5, 
+            bg="#f8fafc", 
+            fg="#0f172a", 
+            insertbackground="#2563eb", 
             bd=0, 
             font=("Arial", 11), 
             wrap="word"
@@ -369,7 +377,7 @@ class MainWindow:
         src_code = LANGUAGES.get(self.src_lang_cb.get(), "auto")
         tgt_code = TARGET_LANGUAGES.get(self.tgt_lang_cb.get(), "zh-CN")
 
-        self.status_lbl.config(text="正在翻译...", fg="#38bdf8")
+        self.status_lbl.config(text="正在翻译...", fg="#2563eb")
         self.res_text.delete("1.0", tk.END)
         self.res_text.insert(tk.END, "正在翻译中...")
 
@@ -385,98 +393,156 @@ class MainWindow:
     def _on_manual_trans_finished(self, result_text, cost):
         self.res_text.delete("1.0", tk.END)
         self.res_text.insert(tk.END, result_text)
-        self.status_lbl.config(text=f"翻译完成 ({cost:.2f}s)", fg="#4ade80")
+        self.status_lbl.config(text=f"翻译完成 ({cost:.2f}s)", fg="#16a34a")
 
     def copy_result(self):
         result = self.res_text.get("1.0", tk.END).strip()
         if result:
             set_clipboard_text(result, self.root)
-            self.status_lbl.config(text="译文已复制到剪贴板", fg="#38bdf8")
+            self.status_lbl.config(text="译文已复制到剪贴板", fg="#2563eb")
 
     def clear_all(self):
         self.src_text.delete("1.0", tk.END)
         self.res_text.delete("1.0", tk.END)
-        self.status_lbl.config(text="就绪", fg="#64748b")
+        self.status_lbl.config(text="就绪", fg="#94a3b8")
 
-    # ---------------- 设置页面 ----------------
+    # ---------------- 偏好设置页面 ----------------
     def build_settings_page(self):
-        # 卡片 1：划词翻译语言偏好设置
+        # 卡片 1：划词速译设置
         card1 = tk.LabelFrame(
             self.settings_page, 
             text=" 划词速译偏好设置 ", 
-            fg="#38bdf8", 
-            bg="#0f172a", 
+            fg="#0f172a", 
+            bg="#ffffff", 
+            highlightbackground="#e2e8f0",
+            highlightthickness=1,
+            bd=0,
             font=("Arial", 11, "bold"),
-            padx=14, 
-            pady=12
+            padx=16, 
+            pady=14
         )
         card1.pack(fill="x", pady=(0, 14))
 
-        # “自动”复选框变量
-        self.auto_lang_var = tk.BooleanVar(value=config.popover_auto_lang)
+        # 选项 1：是否启用鼠标划词自动翻译
+        self.mouse_auto_var = tk.BooleanVar(value=config.popover_mouse_auto)
+        mouse_auto_cb = tk.Checkbutton(
+            card1, 
+            text="启用鼠标划词自动翻译（选中文本后松开鼠标即刻自动弹出翻译框）", 
+            variable=self.mouse_auto_var, 
+            command=self.on_mouse_auto_toggle,
+            fg="#0f172a", 
+            bg="#ffffff", 
+            selectcolor="#f1f5f9", 
+            activebackground="#ffffff",
+            activeforeground="#2563eb",
+            font=("Arial", 10, "bold")
+        )
+        mouse_auto_cb.pack(anchor="w", pady=(0, 2))
 
+        mouse_tip_lbl = tk.Label(
+            card1, 
+            text="开启后：鼠标拖选松开即自动翻译；关闭后：仅在按下快捷键时手动触发翻译悬浮窗。", 
+            fg="#64748b", 
+            bg="#ffffff", 
+            font=("Arial", 9)
+        )
+        mouse_tip_lbl.pack(anchor="w", padx=(24, 0), pady=(0, 12))
+
+        # 分割微线
+        sep1 = tk.Frame(card1, bg="#f1f5f9", height=1)
+        sep1.pack(fill="x", pady=(0, 12))
+
+        # 选项 2：自动检测语言
+        self.auto_lang_var = tk.BooleanVar(value=config.popover_auto_lang)
         auto_cb = tk.Checkbutton(
             card1, 
             text="启用自动检测语言（由软件自主决定目标语言，中英互译）", 
             variable=self.auto_lang_var, 
             command=self.on_auto_lang_toggle,
-            fg="#f8fafc", 
-            bg="#0f172a", 
-            selectcolor="#1e293b", 
-            activebackground="#0f172a",
-            activeforeground="#38bdf8",
+            fg="#0f172a", 
+            bg="#ffffff", 
+            selectcolor="#f1f5f9", 
+            activebackground="#ffffff",
+            activeforeground="#2563eb",
             font=("Arial", 10, "bold")
         )
-        auto_cb.pack(anchor="w", pady=(0, 4))
+        auto_cb.pack(anchor="w", pady=(0, 2))
 
-        tip_lbl = tk.Label(
+        auto_tip_lbl = tk.Label(
             card1, 
             text="开启后：划词检测到中文自动译为英文，检测到英文及其他语言自动译为中文。", 
-            fg="#94a3b8", 
-            bg="#0f172a", 
+            fg="#64748b", 
+            bg="#ffffff", 
             font=("Arial", 9)
         )
-        tip_lbl.pack(anchor="w", padx=(24, 0), pady=(0, 10))
+        auto_tip_lbl.pack(anchor="w", padx=(24, 0), pady=(0, 12))
 
-        # 手动选择固定语言行
-        manual_frame = tk.Frame(card1, bg="#0f172a")
-        manual_frame.pack(anchor="w", padx=(24, 0), fill="x")
+        # 手动选择语言行（源语言与目标语言）
+        manual_frame = tk.Frame(card1, bg="#ffffff")
+        manual_frame.pack(anchor="w", padx=(24, 0), fill="x", pady=(0, 2))
 
         tk.Label(
             manual_frame, 
-            text="固定目标语言：", 
-            fg="#e2e8f0", 
-            bg="#0f172a", 
+            text="要翻译的语言：", 
+            fg="#334155", 
+            bg="#ffffff", 
             font=("Arial", 10)
-        ) .pack(side="left")
+        ).pack(side="left")
 
-        # 获取默认目标语言对应的中文名称
-        default_name = "中文 (简体)"
-        for k, v in TARGET_LANGUAGES.items():
-            if v == config.popover_target_lang:
-                default_name = k
+        default_src_name = "自动检测"
+        for k, v in LANGUAGES.items():
+            if v == config.popover_source_lang:
+                default_src_name = k
                 break
 
-        self.popover_lang_cb = ttk.Combobox(
+        self.popover_src_lang_cb = ttk.Combobox(
+            manual_frame, 
+            values=list(LANGUAGES.keys()), 
+            state="disabled" if config.popover_auto_lang else "readonly", 
+            width=10, 
+            font=("Arial", 10)
+        )
+        self.popover_src_lang_cb.set(default_src_name)
+        self.popover_src_lang_cb.pack(side="left", padx=(0, 16))
+        self.popover_src_lang_cb.bind("<<ComboboxSelected>>", self.on_popover_lang_selected)
+
+        tk.Label(
+            manual_frame, 
+            text="目标语言：", 
+            fg="#334155", 
+            bg="#ffffff", 
+            font=("Arial", 10)
+        ).pack(side="left")
+
+        default_tgt_name = "中文 (简体)"
+        for k, v in TARGET_LANGUAGES.items():
+            if v == config.popover_target_lang:
+                default_tgt_name = k
+                break
+
+        self.popover_tgt_lang_cb = ttk.Combobox(
             manual_frame, 
             values=list(TARGET_LANGUAGES.keys()), 
             state="disabled" if config.popover_auto_lang else "readonly", 
-            width=12, 
+            width=10, 
             font=("Arial", 10)
         )
-        self.popover_lang_cb.set(default_name)
-        self.popover_lang_cb.pack(side="left", padx=(4, 0))
-        self.popover_lang_cb.bind("<<ComboboxSelected>>", self.on_popover_lang_selected)
+        self.popover_tgt_lang_cb.set(default_tgt_name)
+        self.popover_tgt_lang_cb.pack(side="left")
+        self.popover_tgt_lang_cb.bind("<<ComboboxSelected>>", self.on_popover_lang_selected)
 
-        # 卡片 2：快捷键参考卡片
+        # 卡片 2：快捷键速查卡片
         card2 = tk.LabelFrame(
             self.settings_page, 
             text=" 快捷键速查 ", 
-            fg="#38bdf8", 
-            bg="#0f172a", 
+            fg="#0f172a", 
+            bg="#ffffff", 
+            highlightbackground="#e2e8f0",
+            highlightthickness=1,
+            bd=0,
             font=("Arial", 11, "bold"),
-            padx=14, 
-            pady=12
+            padx=16, 
+            pady=14
         )
         card2.pack(fill="x")
 
@@ -487,11 +553,15 @@ class MainWindow:
             ("主窗口快速翻译", "Cmd + Enter (macOS) / Ctrl + Enter")
         ]
 
-        for idx, (title, key) in enumerate(shortcuts):
-            row = tk.Frame(card2, bg="#0f172a")
-            row.pack(fill="x", pady=2)
-            tk.Label(row, text=f"• {title}:", fg="#e2e8f0", bg="#0f172a", font=("Arial", 10, "bold"), width=16, anchor="w").pack(side="left")
-            tk.Label(row, text=key, fg="#38bdf8", bg="#0f172a", font=("Arial", 10)).pack(side="left")
+        for title, key in shortcuts:
+            row = tk.Frame(card2, bg="#ffffff")
+            row.pack(fill="x", pady=3)
+            tk.Label(row, text=f"• {title}:", fg="#475569", bg="#ffffff", font=("Arial", 10, "bold"), width=16, anchor="w").pack(side="left")
+            tk.Label(row, text=key, fg="#2563eb", bg="#ffffff", font=("Arial", 10)).pack(side="left")
+
+    def on_mouse_auto_toggle(self):
+        """开启或关闭鼠标选词后自动弹窗翻译"""
+        config.popover_mouse_auto = self.mouse_auto_var.get()
 
     def on_auto_lang_toggle(self):
         """勾选/取消勾选‘自动’选项时的联动逻辑"""
@@ -499,24 +569,24 @@ class MainWindow:
         config.popover_auto_lang = is_auto
 
         if is_auto:
-            # 勾选自动后：禁用手动选择下拉列表
-            self.popover_lang_cb.config(state="disabled")
+            self.popover_src_lang_cb.config(state="disabled")
+            self.popover_tgt_lang_cb.config(state="disabled")
         else:
-            # 取消自动后：解除禁用，允许用户自主选择固定语言
-            self.popover_lang_cb.config(state="readonly")
-            # 同步更新当前选中的语言
-            selected_name = self.popover_lang_cb.get()
-            config.popover_target_lang = TARGET_LANGUAGES.get(selected_name, "zh-CN")
+            self.popover_src_lang_cb.config(state="readonly")
+            self.popover_tgt_lang_cb.config(state="readonly")
+            self.on_popover_lang_selected(None)
 
     def on_popover_lang_selected(self, event):
-        selected_name = self.popover_lang_cb.get()
-        config.popover_target_lang = TARGET_LANGUAGES.get(selected_name, "zh-CN")
+        src_name = self.popover_src_lang_cb.get()
+        tgt_name = self.popover_tgt_lang_cb.get()
+        config.popover_source_lang = LANGUAGES.get(src_name, "auto")
+        config.popover_target_lang = TARGET_LANGUAGES.get(tgt_name, "zh-CN")
 
     def show(self):
         if self.window.state() == "withdrawn" or self.window.state() == "iconic":
             screen_width = self.window.winfo_screenwidth()
             screen_height = self.window.winfo_screenheight()
-            w, h = 620, 520
+            w, h = 620, 540
             x = (screen_width - w) // 2
             y = (screen_height - h) // 2
             self.window.geometry(f"{w}x{h}+{x}+{y}")

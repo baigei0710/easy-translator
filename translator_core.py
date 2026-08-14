@@ -55,9 +55,13 @@ TARGET_LANGUAGES = {k: v for k, v in LANGUAGES.items() if v != "auto"}
 class AppConfig:
     """应用全局配置类，管理划词与主窗口翻译偏好"""
     def __init__(self):
+        # 划词翻译：是否启用鼠标划词自动翻译（松开鼠标即刻翻译）
+        self.popover_mouse_auto = True
         # 划词翻译：是否由软件自主决定目标语言（自动检测）
         self.popover_auto_lang = True
-        # 划词翻译：手动指定的固定目标语言代码
+        # 划词翻译：手动指定的源语言代码（要翻译的语言）
+        self.popover_source_lang = "auto"
+        # 划词翻译：手动指定的目标语言代码
         self.popover_target_lang = "zh-CN"
 
 
@@ -111,15 +115,15 @@ def api_translate(text, source_lang="auto", target_lang=None):
     text = text.strip()
 
     # 1. 确定目标语言与翻译方向
-    if target_lang is None or target_lang == "auto":
+    if target_lang is None:
         if config.popover_auto_lang:
             # 智能判断：包含中文则译为英文，否则译为中文
             is_zh = any('\u4e00' <= c <= '\u9fff' for c in text)
             tgt = 'en' if is_zh else 'zh-CN'
             src = 'zh-CN' if is_zh else 'auto'
         else:
+            src = config.popover_source_lang
             tgt = config.popover_target_lang
-            src = source_lang
     else:
         tgt = target_lang
         src = source_lang
@@ -201,6 +205,10 @@ class InputListenerManager:
         # 2. 注册鼠标松开监听
         def _on_mouse_click(x, y, button, pressed):
             if button != mouse.Button.left:
+                return
+
+            # 如果用户在设置中关闭了“划词自动翻译”，则不触发鼠标自动弹窗
+            if not config.popover_mouse_auto:
                 return
 
             now = time.time()
