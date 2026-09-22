@@ -1,3 +1,6 @@
+###写的有点不是很可以用,所以先搁置了,如果有机会再重启吧,第一次用ai写不太会用
+
+
 # Easy translator
 ## An AI powered translation app
 
